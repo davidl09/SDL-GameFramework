@@ -1,7 +1,9 @@
-#include "GameObject.h"
+#include "gameobject.h"
 
-GameObject::GameObject(const std::string& tag)
-    : tag(tag)
+#include <utility>
+
+GameObject::GameObject(std::string  tag)
+    : tag(std::move(tag))
     , isActive(true)
 {
 }
@@ -24,11 +26,11 @@ void GameObject::Render(SDL_Renderer* renderer) {
 }
 
 void GameObject::SetSprite(std::shared_ptr<Sprite> sprite) {
-    this->sprite = sprite;
+    this->sprite = std::move(sprite);
 }
 
 void GameObject::SetCollider(std::shared_ptr<Collider> collider) {
-    this->collider = collider;
+    this->collider = std::move(collider);
 }
 
 bool GameObject::CheckCollision(const GameObject& other) const {

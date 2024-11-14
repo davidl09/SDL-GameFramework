@@ -7,7 +7,7 @@
 
 class GameObject {
 public:
-    GameObject(const std::string& tag = "");
+    explicit GameObject(std::string  tag = "");
     virtual ~GameObject() = default;
 
     virtual void Update(float deltaTime);
@@ -18,17 +18,17 @@ public:
     void SetCollider(std::shared_ptr<Collider> collider);
 
     // Getters
-    const Transform& GetTransform() const { return transform; }
+    [[nodiscard]] const Transform& GetTransform() const { return transform; }
     Transform& GetTransform() { return transform; }
-    const std::string& GetTag() const { return tag; }
-    std::shared_ptr<Sprite> GetSprite() const { return sprite; }
-    std::shared_ptr<Collider> GetCollider() const { return collider; }
+    [[nodiscard]] const std::string& GetTag() const { return tag; }
+    [[nodiscard]] std::shared_ptr<Sprite> GetSprite() const { return sprite; }
+    [[nodiscard]] std::shared_ptr<Collider> GetCollider() const { return collider; }
 
-    bool IsActive() const { return isActive; }
-    void SetActive(bool active) { isActive = active; }
+    [[nodiscard]] bool IsActive() const { return isActive; }
+    void SetActive(const bool active) { isActive = active; }
 
     // Collision checking
-    bool CheckCollision(const GameObject& other) const;
+    [[nodiscard]] bool CheckCollision(const GameObject& other) const;
 
     // Virtual collision handlers
     virtual void OnCollisionEnter(GameObject* other) {}

@@ -15,7 +15,7 @@ public:
     virtual void Update(float deltaTime);
     virtual void Render(SDL_Renderer* renderer);
 
-    void AddGameObject(std::shared_ptr<GameObject> gameObject);
+    void AddGameObject(const std::shared_ptr<GameObject>& gameObject);
     void RemoveGameObject(const std::shared_ptr<GameObject>& gameObject);
 
     std::vector<std::shared_ptr<GameObject>> GetGameObjectsByTag(const std::string& tag);

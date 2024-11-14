@@ -12,12 +12,12 @@ void Scene::Update(float deltaTime) {
 }
 
 void Scene::Render(SDL_Renderer* renderer) {
-    for (auto& obj : gameObjects) {
+    for (const auto& obj : gameObjects) {
         obj->Render(renderer);
     }
 }
 
-void Scene::AddGameObject(std::shared_ptr<GameObject> gameObject) {
+void Scene::AddGameObject(const std::shared_ptr<GameObject>& gameObject) {
     gameObjects.push_back(gameObject);
     RegisterGameObjectTag(gameObject);
 }

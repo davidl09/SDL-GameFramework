@@ -2,20 +2,7 @@
 #include <SDL_image.h>
 #include <SDL_mixer.h>
 #include <stdexcept>
-
-Game::Game(const std::string& title, int width, int height)
-    : title(title)
-    , width(width)
-    , height(height)
-    , isRunning(false)
-    , window(nullptr)
-    , renderer(nullptr)
-    , lastFrameTime(0)
-    , deltaTime(0.0f)
-    , targetFrameRate(60.0f)
-    , frameDelay(1000.0f / targetFrameRate)
-{
-}
+#include <utility>
 
 Game::~Game() {
     if (renderer) {
@@ -31,7 +18,11 @@ Game::~Game() {
     SDL_Quit();
 }
 
-bool Game::Initialize() {
+bool Game::Initialize(const std::string& windowTitle, int windowWidth, int windowHeight) {
+    title = windowTitle;
+    width = windowWidth;
+    height = windowHeight;
+
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         throw std::runtime_error(SDL_GetError());
     }
@@ -96,7 +87,17 @@ void Game::Quit() {
 }
 
 void Game::ChangeScene(std::shared_ptr<Scene> newScene) {
-    currentScene = newScene;
+    if (currentScene) {
+        currentScene->OnExit();
+    }
+
+    currentScene = std::move(newScene);
+
+    // Initialize the new scene
+    if (currentScene) {
+        // Add this line to call OnEnter for the new scene
+        currentScene->OnEnter();
+    }
 }
 
 void Game::ProcessInput() {
