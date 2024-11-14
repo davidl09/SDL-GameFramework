@@ -75,6 +75,8 @@ add_library(${PROJECT_NAME}
         src/scene.cpp
         src/gameobject.cpp
         src/collider.cpp
+        src/mouse.cpp
+        src/keyboard.cpp
 )
 
 # Add version definition

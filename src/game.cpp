@@ -1,4 +1,7 @@
 #include "game.h"
+#include <keyboard.h>
+#include <mouse.h>
+
 #include <SDL_image.h>
 #include <SDL_mixer.h>
 #include <stdexcept>
@@ -103,12 +106,14 @@ void Game::ChangeScene(std::shared_ptr<Scene> newScene) {
 void Game::ProcessInput() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_QUIT:
-                isRunning = false;
-                break;
+        if (event.type == SDL_QUIT) {
+            isRunning = false;
         }
     }
+
+    // Update input states
+    Mouse::Instance().Update();
+    Keyboard::Instance().Update();
 }
 
 void Game::Update() {
