@@ -1,6 +1,6 @@
 #pragma once
 #include <SDL2/SDL.h>
-#include "Transform.h"
+#include "transform.h"
 #include <vector>
 
 class Collider {

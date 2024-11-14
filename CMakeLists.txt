@@ -67,10 +67,14 @@ endif()
 
 # Define the library
 add_library(${PROJECT_NAME}
-    src/asset-manager.cpp
-    src/vector2d.cpp
-    src/transform.cpp
-    src/sprite.cpp
+        src/asset-manager.cpp
+        src/vector2d.cpp
+        src/transform.cpp
+        src/sprite.cpp
+        src/game.cpp
+        src/scene.cpp
+        src/gameobject.cpp
+        src/collider.cpp
 )
 
 # Add version definition

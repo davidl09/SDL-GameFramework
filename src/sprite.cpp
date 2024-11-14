@@ -1,7 +1,9 @@
-#include "Sprite.h"
+#include "sprite.h"
+
+#include <utility>
 
 Sprite::Sprite(std::shared_ptr<SDL_Texture> texture, const SDL_Rect& srcRect)
-    : texture(texture), sourceRect(srcRect) {}
+    : texture(std::move(texture)), sourceRect(srcRect) {}
 
 void Sprite::Render(SDL_Renderer* renderer, const Transform& transform) {
     SDL_Rect destRect = GetDestRect(transform);

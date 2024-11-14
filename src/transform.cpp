@@ -1,4 +1,4 @@
-#include "Transform.h"
+#include "transform.h"
 #include <cmath>
 
 Transform::Transform(const Vector2D& pos, const Vector2D& scale, float rotation)
