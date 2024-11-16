@@ -1,6 +1,7 @@
 #include "game.h"
 #include <keyboard.h>
 #include <mouse.h>
+#include <random>
 
 #include <SDL_image.h>
 #include <SDL_mixer.h>

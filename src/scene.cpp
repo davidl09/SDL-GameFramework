@@ -1,31 +1,76 @@
 #include "scene.h"
 #include <algorithm>
+#include <stdexcept>
 
-using namespace std;
-
+Scene::~Scene() {
+    // Clear collections in specific order to avoid dependency issues
+    activeCollisions.clear();
+    taggedObjects.clear();
+    gameObjects.clear();
+}
 
 void Scene::Update(float deltaTime) {
-    // Update all game objects
-    for (auto& obj : gameObjects) {
-        obj->Update(deltaTime);
+    // Remove inactive or destroyed objects
+    gameObjects.erase(
+        std::remove_if(gameObjects.begin(), gameObjects.end(),
+            [](const auto& obj) { return !obj || !obj->IsActive(); }),
+        gameObjects.end()
+    );
+
+    // Clean up any expired tagged objects
+    CleanupTags();
+
+    // Update remaining objects
+    for (const auto& obj : gameObjects) {
+        if (obj && obj->IsActive()) {
+            try {
+                obj->Update(deltaTime);
+            } catch (const std::exception& e) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                    "Error updating object: %s", e.what());
+            }
+        }
     }
 
-    // Check for collisions
-    CheckCollisions();
+    // Process collisions if not already doing so
+    if (!isProcessingCollisions) {
+        CheckCollisions();
+    }
 }
 
 void Scene::Render(SDL_Renderer* renderer) {
+    if (!renderer) return;
+
+    // Render all active objects
     for (const auto& obj : gameObjects) {
-        obj->Render(renderer);
+        if (obj && obj->IsActive()) {
+            try {
+                obj->Render(renderer);
+            } catch (const std::exception& e) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                    "Error rendering object: %s", e.what());
+            }
+        }
+    }
+
+    // Draw debug information if enabled
+    if (debugDrawEnabled) {
+        DrawDebugCollisions(renderer);
     }
 }
 
 void Scene::AddGameObject(const std::shared_ptr<GameObject>& gameObject) {
+    if (!gameObject) {
+        throw std::invalid_argument("Cannot add null GameObject");
+    }
+
     gameObjects.push_back(gameObject);
     RegisterGameObjectTag(gameObject);
 }
 
 void Scene::RemoveGameObject(const std::shared_ptr<GameObject>& gameObject) {
+    if (!gameObject) return;
+
     UnregisterGameObjectTag(gameObject);
 
     auto it = std::find(gameObjects.begin(), gameObjects.end(), gameObject);
@@ -35,86 +80,195 @@ void Scene::RemoveGameObject(const std::shared_ptr<GameObject>& gameObject) {
 }
 
 std::vector<std::shared_ptr<GameObject>> Scene::GetGameObjectsByTag(const std::string& tag) {
+    std::vector<std::shared_ptr<GameObject>> result;
+
     auto it = taggedObjects.find(tag);
     if (it != taggedObjects.end()) {
-        return it->second;
+        result.reserve(it->second.size());
+        for (const auto& info : it->second) {
+            if (auto obj = info.object.lock()) {
+                result.push_back(obj);
+            }
+        }
     }
-    return std::vector<std::shared_ptr<GameObject>>();
+
+    return result;
 }
 
 std::shared_ptr<GameObject> Scene::GetGameObjectByTag(const std::string& tag) {
     auto objects = GetGameObjectsByTag(tag);
-    if (!objects.empty()) {
-        return objects[0];
-    }
-    return nullptr;
+    return objects.empty() ? nullptr : objects[0];
 }
 
 void Scene::CheckCollisions() {
-    std::unordered_set<std::pair<GameObject*, GameObject*>, PairHash> currentFrameCollisions;
+    isProcessingCollisions = true;
+    std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual> currentFrameCollisions;
 
-    // Check for collisions
-    for (size_t i = 0; i < gameObjects.size(); ++i) {
-        for (size_t j = i + 1; j < gameObjects.size(); ++j) {
-            auto& first = gameObjects[i];
-            auto& second = gameObjects[j];
-
-            // Skip if either object is inactive
-            if (!first->IsActive() || !second->IsActive()) {
-                continue;
-            }
-
-            if (first->CheckCollision(*second)) {
-                // Order the pair consistently
-                GameObject* a = first.get();
-                GameObject* b = second.get();
-                if (a > b) {
-                    swap(a, b);
-                }
-                auto collisionPair = std::make_pair(a, b);
-
-                // Add to current frame's collisions
-                currentFrameCollisions.insert(collisionPair);
-
-                // If this is a new collision, call OnCollisionEnter
-                if (activeCollisions.find(collisionPair) == activeCollisions.end()) {
-                    first->OnCollisionEnter(second.get());
-                    second->OnCollisionEnter(first.get());
-
-                    // Call scene's collision handler
-                    OnCollision(first.get(), second.get());
-                }
+    try {
+        // Check for new collisions
+        for (size_t i = 0; i < gameObjects.size(); ++i) {
+            for (size_t j = i + 1; j < gameObjects.size(); ++j) {
+                ProcessCollisionPair(gameObjects[i], gameObjects[j], currentFrameCollisions);
             }
         }
+
+        // Process collision exits
+        ProcessCollisionExits(currentFrameCollisions);
+
+        // Update active collisions for next frame
+        activeCollisions = std::move(currentFrameCollisions);
+    }
+    catch (...) {
+        isProcessingCollisions = false;
+        throw;
     }
 
-    // Check for collision exits
+    isProcessingCollisions = false;
+}
+
+void Scene::ProcessCollisionPair(
+    const std::shared_ptr<GameObject>& first,
+    const std::shared_ptr<GameObject>& second,
+    std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual>& currentCollisions)
+{
+    if (!first->IsActive() || !second->IsActive()) {
+        return;
+    }
+
+    if (first->CheckCollision(*second)) {
+        CollisionPair pair = CreateOrderedPair(first, second);
+        currentCollisions.insert(pair);
+
+        if (activeCollisions.find(pair) == activeCollisions.end()) {
+            SafeCallCollisionHandlers(first, second);
+        }
+    }
+}
+
+void Scene::ProcessCollisionExits(
+    const std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual>& currentCollisions)
+{
     for (const auto& pair : activeCollisions) {
-        if (currentFrameCollisions.find(pair) == currentFrameCollisions.end()) {
-            // This collision is no longer active
-            pair.first->OnCollisionExit(pair.second);
-            pair.second->OnCollisionExit(pair.first);
+        if (auto first = pair.first.lock()) {
+            if (auto second = pair.second.lock()) {
+                if (currentCollisions.find(pair) == currentCollisions.end()) {
+                    SafeCallCollisionExitHandlers(first, second);
+                }
+            }
         }
     }
+}
 
-    // Update active collisions for next frame
-    activeCollisions = std::move(currentFrameCollisions);
+void Scene::SafeCallCollisionHandlers(
+    const std::shared_ptr<GameObject>& first,
+    const std::shared_ptr<GameObject>& second)
+{
+    try {
+        first->OnCollisionEnter(second.get());
+        second->OnCollisionEnter(first.get());
+        OnCollision(first.get(), second.get());
+    }
+    catch (const std::exception& e) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Error in collision handlers: %s", e.what());
+    }
+}
+
+void Scene::SafeCallCollisionExitHandlers(
+    const std::shared_ptr<GameObject>& first,
+    const std::shared_ptr<GameObject>& second)
+{
+    try {
+        first->OnCollisionExit(second.get());
+        second->OnCollisionExit(first.get());
+    }
+    catch (const std::exception& e) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Error in collision exit handlers: %s", e.what());
+    }
+}
+
+Scene::CollisionPair Scene::CreateOrderedPair(
+    const std::shared_ptr<GameObject>& first,
+    const std::shared_ptr<GameObject>& second)
+{
+    return first.get() < second.get()
+        ? CollisionPair(first, second)
+        : CollisionPair(second, first);
 }
 
 void Scene::RegisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject) {
     const std::string& tag = gameObject->GetTag();
     if (!tag.empty()) {
-        taggedObjects[tag].push_back(gameObject);
+        TaggedObjectInfo info{
+            std::weak_ptr<GameObject>(gameObject),
+            gameObjects.size() - 1  // Index in gameObjects vector
+        };
+        taggedObjects[tag].push_back(info);
     }
 }
 
 void Scene::UnregisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject) {
     const std::string& tag = gameObject->GetTag();
     if (!tag.empty()) {
-        auto& taggedList = taggedObjects[tag];
-        auto it = std::find(taggedList.begin(), taggedList.end(), gameObject);
-        if (it != taggedList.end()) {
-            taggedList.erase(it);
+        auto it = taggedObjects.find(tag);
+        if (it != taggedObjects.end()) {
+            auto& tagList = it->second;
+            tagList.erase(
+                std::remove_if(tagList.begin(), tagList.end(),
+                    [gameObject](const TaggedObjectInfo& info) {
+                        auto obj = info.object.lock();
+                        return !obj || obj == gameObject;
+                    }),
+                tagList.end()
+            );
+
+            if (tagList.empty()) {
+                taggedObjects.erase(it);
+            }
+        }
+    }
+}
+
+void Scene::CleanupTags() {
+    for (auto it = taggedObjects.begin(); it != taggedObjects.end();) {
+        auto& tagList = it->second;
+        tagList.erase(
+            std::remove_if(tagList.begin(), tagList.end(),
+                [](const TaggedObjectInfo& info) {
+                    return info.object.expired();
+                }),
+            tagList.end()
+        );
+
+        if (tagList.empty()) {
+            it = taggedObjects.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Scene::DrawDebugCollisions(SDL_Renderer* renderer) {
+    if (!renderer) return;
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+    // Draw lines between actively colliding objects
+    for (const auto& pair : activeCollisions) {
+        auto first = pair.first.lock();
+        auto second = pair.second.lock();
+
+        if (first && second) {
+            const auto& pos1 = first->GetTransform().position;
+            const auto& pos2 = second->GetTransform().position;
+
+            SDL_RenderDrawLine(renderer,
+                static_cast<int>(pos1.x),
+                static_cast<int>(pos1.y),
+                static_cast<int>(pos2.x),
+                static_cast<int>(pos2.y)
+            );
         }
     }
 }

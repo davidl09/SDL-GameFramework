@@ -2,6 +2,7 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <memory>
+#include <random>
 #include <string>
 #include "scene.h"
 
@@ -25,11 +26,11 @@ public:
     void Quit();
 
     // Global accessors
-    SDL_Renderer* GetRenderer() const { return renderer; }
-    int GetWindowWidth() const { return width; }
-    int GetWindowHeight() const { return height; }
-    float GetDeltaTime() const { return deltaTime; }
-    bool IsRunning() const { return isRunning; }
+    [[nodiscard]] SDL_Renderer* GetRenderer() const { return renderer; }
+    [[nodiscard]] int GetWindowWidth() const { return width; }
+    [[nodiscard]] int GetWindowHeight() const { return height; }
+    [[nodiscard]] float GetDeltaTime() const { return deltaTime; }
+    [[nodiscard]] bool IsRunning() const { return isRunning; }
 
     void ChangeScene(std::shared_ptr<Scene> newScene);
 
