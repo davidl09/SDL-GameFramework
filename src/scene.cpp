@@ -1,6 +1,9 @@
 #include "scene.h"
 #include <algorithm>
 
+using namespace std;
+
+
 void Scene::Update(float deltaTime) {
     // Update all game objects
     for (auto& obj : gameObjects) {
@@ -48,13 +51,54 @@ std::shared_ptr<GameObject> Scene::GetGameObjectByTag(const std::string& tag) {
 }
 
 void Scene::CheckCollisions() {
+    std::unordered_set<std::pair<GameObject*, GameObject*>, PairHash> currentFrameCollisions;
+
+    // Check for collisions
     for (size_t i = 0; i < gameObjects.size(); ++i) {
         for (size_t j = i + 1; j < gameObjects.size(); ++j) {
-            if (gameObjects[i]->CheckCollision(*gameObjects[j])) {
-                OnCollision(gameObjects[i].get(), gameObjects[j].get());
+            auto& first = gameObjects[i];
+            auto& second = gameObjects[j];
+
+            // Skip if either object is inactive
+            if (!first->IsActive() || !second->IsActive()) {
+                continue;
+            }
+
+            if (first->CheckCollision(*second)) {
+                // Order the pair consistently
+                GameObject* a = first.get();
+                GameObject* b = second.get();
+                if (a > b) {
+                    swap(a, b);
+                }
+                auto collisionPair = std::make_pair(a, b);
+
+                // Add to current frame's collisions
+                currentFrameCollisions.insert(collisionPair);
+
+                // If this is a new collision, call OnCollisionEnter
+                if (activeCollisions.find(collisionPair) == activeCollisions.end()) {
+                    first->OnCollisionEnter(second.get());
+                    second->OnCollisionEnter(first.get());
+
+                    // Call scene's collision handler
+                    OnCollision(first.get(), second.get());
+                }
             }
         }
     }
+
+    // Check for collision exits
+    for (const auto& pair : activeCollisions) {
+        if (currentFrameCollisions.find(pair) == currentFrameCollisions.end()) {
+            // This collision is no longer active
+            pair.first->OnCollisionExit(pair.second);
+            pair.second->OnCollisionExit(pair.first);
+        }
+    }
+
+    // Update active collisions for next frame
+    activeCollisions = std::move(currentFrameCollisions);
 }
 
 void Scene::RegisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject) {

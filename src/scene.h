@@ -1,8 +1,9 @@
 #pragma once
 #include <vector>
-#include <memory>
 #include <unordered_map>
 #include <string>
+#include <unordered_set>
+
 #include "gameobject.h"
 
 class Scene {
@@ -24,10 +25,22 @@ public:
     void CheckCollisions();
 
 protected:
+
+    struct PairHash {
+        template <typename T1, typename T2>
+        std::size_t operator()(const std::pair<T1, T2>& p) const {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            return h1 ^ (h2 << 1);
+        }
+    };
+
+
     virtual void OnCollision(GameObject* first, GameObject* second) {}
 
     std::vector<std::shared_ptr<GameObject>> gameObjects;
     std::unordered_map<std::string, std::vector<std::shared_ptr<GameObject>>> taggedObjects;
+    std::unordered_set<std::pair<GameObject*, GameObject*>, PairHash> activeCollisions;
 
     // Helper method to maintain the tagged objects map
     void RegisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject);

@@ -10,7 +10,7 @@ class AssetManager {
 public:
     static AssetManager& Instance();
     
-    std::shared_ptr<SDL_Texture> LoadTexture(const std::string& path, SDL_Renderer* renderer);
+    std::shared_ptr<SDL_Texture> LoadTexture(const std::string& path);
     std::shared_ptr<Mix_Chunk> LoadSound(const std::string& path);
     std::shared_ptr<Mix_Music> LoadMusic(const std::string& path);
     

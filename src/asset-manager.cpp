@@ -1,11 +1,14 @@
 #include "asset-manager.h"
 
+#include <game.h>
+
 AssetManager& AssetManager::Instance() {
     static AssetManager instance;
     return instance;
 }
 
-std::shared_ptr<SDL_Texture> AssetManager::LoadTexture(const std::string& path, SDL_Renderer* renderer) {
+std::shared_ptr<SDL_Texture> AssetManager::LoadTexture(const std::string& path) {
+    auto renderer = Game::Instance().GetRenderer();
     auto it = textures.find(path);
     if (it != textures.end()) {
         return it->second;

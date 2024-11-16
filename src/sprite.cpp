@@ -5,6 +5,16 @@
 Sprite::Sprite(std::shared_ptr<SDL_Texture> texture, const SDL_Rect& srcRect)
     : texture(std::move(texture)), sourceRect(srcRect) {}
 
+Sprite::Sprite(std::shared_ptr<SDL_Texture> tex)
+    : texture(std::move(tex)), sourceRect(SDL_Rect()) {
+    // Get full texture dimensions
+    int width, height;
+    SDL_QueryTexture(texture.get(), nullptr, nullptr, &width, &height);
+
+    // Set source rectangle to full texture
+    sourceRect = {0, 0, width, height};
+}
+
 void Sprite::Render(SDL_Renderer* renderer, const Transform& transform) {
     SDL_Rect destRect = GetDestRect(transform);
     
