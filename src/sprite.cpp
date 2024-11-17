@@ -1,5 +1,6 @@
 #include "sprite.h"
 
+#include <game.h>
 #include <utility>
 
 Sprite::Sprite(std::shared_ptr<SDL_Texture> texture, const SDL_Rect& srcRect)
@@ -15,7 +16,7 @@ Sprite::Sprite(std::shared_ptr<SDL_Texture> tex)
     sourceRect = {0, 0, width, height};
 }
 
-void Sprite::Render(SDL_Renderer* renderer, const Transform& transform) {
+void Sprite::Render(const Transform& transform) {
     SDL_Rect destRect = GetDestRect(transform);
     
     // Calculate the pivot point for rotation (center of the sprite)
@@ -29,7 +30,7 @@ void Sprite::Render(SDL_Renderer* renderer, const Transform& transform) {
     destRect.y -= center.y;
     
     SDL_RenderCopyEx(
-        renderer,
+        Game::Instance().GetRenderer(),
         texture.get(),
         &sourceRect,
         &destRect,

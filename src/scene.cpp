@@ -45,7 +45,7 @@ void Scene::Render(SDL_Renderer* renderer) {
     for (const auto& obj : gameObjects) {
         if (obj && obj->IsActive()) {
             try {
-                obj->Render(renderer);
+                obj->Render();
             } catch (const std::exception& e) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                     "Error rendering object: %s", e.what());

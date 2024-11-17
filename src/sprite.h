@@ -9,7 +9,7 @@ public:
 
     Sprite(std::shared_ptr<SDL_Texture> tex);
 
-    void Render(SDL_Renderer* renderer, const Transform& transform);
+    void Render(const Transform& transform);
     [[nodiscard]] const SDL_Rect& GetSourceRect() const;
     [[nodiscard]] SDL_Rect GetDestRect(const Transform& transform) const;
     

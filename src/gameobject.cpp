@@ -1,5 +1,6 @@
 #include "gameobject.h"
 
+#include <game.h>
 #include <utility>
 
 GameObject::GameObject(std::string  tag)
@@ -12,10 +13,10 @@ void GameObject::Update(float deltaTime) {
     // Base class doesn't implement any behavior
 }
 
-void GameObject::Render(SDL_Renderer* renderer) {
+void GameObject::Render() {
     if (!isActive || !sprite) return;
 
-    sprite->Render(renderer, transform);
+    sprite->Render(transform);
 
     // Debug render for collider if it exists
 #ifdef _DEBUG

@@ -11,7 +11,7 @@ public:
     virtual ~GameObject() = default;
 
     virtual void Update(float deltaTime);
-    virtual void Render(SDL_Renderer* renderer);
+    virtual void Render();
 
     // Component management
     void SetSprite(std::shared_ptr<Sprite> sprite);
