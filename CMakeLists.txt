@@ -137,6 +137,13 @@ else()
     )
 endif()
 
+option(GAMEFRAMEWORK_BUILD_TESTS "Build the test suite" ON)
+
+if(GAMEFRAMEWORK_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # Installation
 # Installation
 if(GAMEFRAMEWORK_INSTALL)
@@ -268,4 +275,6 @@ if(GAMEFRAMEWORK_INSTALL)
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
     )
 endif()
+
+
 
