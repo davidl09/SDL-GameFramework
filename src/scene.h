@@ -21,7 +21,7 @@ public:
     virtual void OnEnter() {}
     virtual void OnExit() {}
     virtual void Update(float deltaTime);
-    virtual void Render(SDL_Renderer* renderer);
+    virtual void Render();
 
     // GameObject management
     void AddGameObject(const std::shared_ptr<GameObject>& gameObject);

@@ -1,5 +1,6 @@
 #include "scene.h"
 #include <algorithm>
+#include <game.h>
 #include <stdexcept>
 
 Scene::~Scene() {
@@ -38,8 +39,8 @@ void Scene::Update(float deltaTime) {
     }
 }
 
-void Scene::Render(SDL_Renderer* renderer) {
-    if (!renderer) return;
+void Scene::Render() {
+    if (!Game::Instance().GetRenderer()) return;
 
     // Render all active objects
     for (const auto& obj : gameObjects) {
@@ -55,7 +56,7 @@ void Scene::Render(SDL_Renderer* renderer) {
 
     // Draw debug information if enabled
     if (debugDrawEnabled) {
-        DrawDebugCollisions(renderer);
+        DrawDebugCollisions(Game::Instance().GetRenderer());
     }
 }
 

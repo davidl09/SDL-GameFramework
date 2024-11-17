@@ -128,7 +128,7 @@ void Game::Render() {
     SDL_RenderClear(renderer);
 
     if (currentScene) {
-        currentScene->Render(renderer);
+        currentScene->Render();
     }
 
     SDL_RenderPresent(renderer);
