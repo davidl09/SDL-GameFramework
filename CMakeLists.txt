@@ -23,13 +23,15 @@ if(GAMEFRAMEWORK_USE_SYSTEM_SDL2)
     find_package(SDL2 QUIET)
     find_package(SDL2_image QUIET)
     find_package(SDL2_mixer QUIET)
+    find_package(SDL2_ttf QUIET)
 endif()
 
 # If any of the SDL2 components are missing, fetch them all to ensure consistency
-if(NOT SDL2_FOUND OR NOT SDL2_image_FOUND OR NOT SDL2_mixer_FOUND)
+if(NOT SDL2_FOUND OR NOT SDL2_image_FOUND OR NOT SDL2_mixer_FOUND OR NOT SDL2_ttf_FOUND)
     set(SDL2_DISABLE_INSTALL ON CACHE BOOL "")
     set(SDL2IMAGE_INSTALL OFF CACHE BOOL "")
     set(SDL2MIXER_INSTALL OFF CACHE BOOL "")
+    set(SDL2TTF_INSTALL OFF CACHE BOOL "")
     
     # Fetch SDL2
     FetchContent_Declare(
@@ -51,8 +53,14 @@ if(NOT SDL2_FOUND OR NOT SDL2_image_FOUND OR NOT SDL2_mixer_FOUND)
         GIT_REPOSITORY "https://github.com/libsdl-org/SDL_mixer.git"
         GIT_TAG "release-2.6.3"
     )
+
+    FetchContent_Declare(
+            SDL2_ttf
+            GIT_REPOSITORY "https://github.com/libsdl-org/SDL_ttf.git"
+            GIT_TAG "release-2.20.2"
+    )
     
-    FetchContent_MakeAvailable(SDL2 SDL2_image SDL2_mixer)
+    FetchContent_MakeAvailable(SDL2 SDL2_image SDL2_mixer SDL2_ttf)
     
     # Create our own targets for SDL2 when using FetchContent
     add_library(SDL2_Bundled INTERFACE)
@@ -63,6 +71,9 @@ if(NOT SDL2_FOUND OR NOT SDL2_image_FOUND OR NOT SDL2_mixer_FOUND)
     
     add_library(SDL2_mixer_Bundled INTERFACE)
     target_link_libraries(SDL2_mixer_Bundled INTERFACE SDL2_mixer)
+
+    add_library(SDL2_ttf_Bundled INTERFACE)
+    target_link_libraries(SDL2_ttf_Bundled INTERFACE SDL2_ttf)
 endif()
 
 # Define the library
@@ -77,6 +88,8 @@ add_library(${PROJECT_NAME}
         src/collider.cpp
         src/mouse.cpp
         src/keyboard.cpp
+        src/audiomanager.cpp
+        src/audiomanager.h
 )
 
 # Add version definition
@@ -106,12 +119,13 @@ target_include_directories(${PROJECT_NAME}
 )
 
 # Link dependencies
-if(SDL2_FOUND AND SDL2_image_FOUND AND SDL2_mixer_FOUND)
+if(SDL2_FOUND AND SDL2_image_FOUND AND SDL2_mixer_FOUND OR NOT SDL2_ttf_FOUND)
     target_link_libraries(${PROJECT_NAME} 
         PUBLIC 
             SDL2::SDL2
             SDL2_image::SDL2_image
             SDL2_mixer::SDL2_mixer
+            SDL2_ttf::SDL2_ttf
     )
 else()
     target_link_libraries(${PROJECT_NAME} 
@@ -119,6 +133,7 @@ else()
             SDL2_Bundled
             SDL2_image_Bundled
             SDL2_mixer_Bundled
+            SDL2_ttf_Bundled
     )
 endif()
 
@@ -135,9 +150,11 @@ if(GAMEFRAMEWORK_INSTALL)
             SDL2_Bundled
             SDL2_image_Bundled
             SDL2_mixer_Bundled
+            SDL2_ttf_Bundled
             SDL2
             SDL2_image
             SDL2_mixer
+            SDL2_ttf
             EXPORT ${PROJECT_NAME}Targets
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -171,6 +188,14 @@ if(GAMEFRAMEWORK_INSTALL)
         )
         install(FILES ${SDL2_MIXER_HEADERS}
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SDL2
+        )
+
+        file(GLOB SDL2_TTF_HEADERS
+                ${SDL2_ttf_SOURCE_DIR}/include/*.h
+                ${SDL2_ttf_BINARY_DIR}/include/*.h
+        )
+        install(FILES ${SDL2_TTF_HEADERS}
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SDL2
         )
     else()
         install(TARGETS ${PROJECT_NAME}
