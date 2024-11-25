@@ -77,20 +77,7 @@ if(NOT SDL2_FOUND OR NOT SDL2_image_FOUND OR NOT SDL2_mixer_FOUND OR NOT SDL2_tt
 endif()
 
 # Define the library
-add_library(${PROJECT_NAME}
-        src/asset-manager.cpp
-        src/vector2d.cpp
-        src/transform.cpp
-        src/sprite.cpp
-        src/game.cpp
-        src/scene.cpp
-        src/gameobject.cpp
-        src/collider.cpp
-        src/mouse.cpp
-        src/keyboard.cpp
-        src/audiomanager.cpp
-        src/audiomanager.h
-)
+add_subdirectory(src)
 
 # Add version definition
 configure_file(

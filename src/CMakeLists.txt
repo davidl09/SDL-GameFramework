@@ -1,0 +1,14 @@
+add_library(
+    ${PROJECT_NAME}
+    asset-manager.cpp
+    audiomanager.cpp
+    collider.cpp
+    game.cpp
+    gameobject.cpp
+    keyboard.cpp
+    mouse.cpp
+    scene.cpp
+    sprite.cpp
+    transform.cpp
+    vector2d.cpp
+)
