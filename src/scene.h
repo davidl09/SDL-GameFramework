@@ -1,3 +1,13 @@
+/**
+ * @file scene.h
+ * @brief Scene management class that handles collections of game objects and their interactions
+ * 
+ * The Scene class serves as a container and manager for GameObjects. It handles:
+ * - GameObject lifecycle management
+ * - Collision detection and resolution
+ * - Update and render loops
+ * - Tag-based object management
+ */
 #pragma once
 #include <vector>
 #include <unordered_map>
@@ -17,29 +27,83 @@ public:
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
 
-    // Scene lifecycle methods
+    /**
+     * @brief Called when the scene becomes active
+     * Override this to initialize scene-specific resources
+     */
     virtual void OnEnter() {}
+
+    /**
+     * @brief Called when the scene is being exited
+     * Override this to cleanup scene-specific resources
+     */
     virtual void OnExit() {}
+
+    /**
+     * @brief Update all game objects in the scene
+     * @param deltaTime Time elapsed since last frame in seconds
+     */
     virtual void Update(float deltaTime);
+
+    /**
+     * @brief Render all game objects in the scene
+     */
     virtual void Render();
 
-    // GameObject management
+    /**
+     * @brief Add a game object to the scene
+     * @param gameObject Shared pointer to the game object to add
+     */
     void AddGameObject(const std::shared_ptr<GameObject>& gameObject);
+
+    /**
+     * @brief Remove a game object from the scene
+     * @param gameObject Shared pointer to the game object to remove
+     */
     void RemoveGameObject(const std::shared_ptr<GameObject>& gameObject);
+
+    /**
+     * @brief Get all game objects with a specific tag
+     * @param tag The tag to search for
+     * @return Vector of game objects with the specified tag
+     */
     std::vector<std::shared_ptr<GameObject>> GetGameObjectsByTag(const std::string& tag);
+
+    /**
+     * @brief Get the first game object with a specific tag
+     * @param tag The tag to search for
+     * @return Shared pointer to the first matching game object, or nullptr if none found
+     */
     std::shared_ptr<GameObject> GetGameObjectByTag(const std::string& tag);
 
-    // Debug options
+    /**
+     * @brief Enable or disable debug drawing
+     * @param enabled True to enable debug drawing
+     */
     void SetDebugDrawEnabled(bool enabled) { debugDrawEnabled = enabled; }
+
+    /**
+     * @brief Check if debug drawing is enabled
+     * @return True if debug drawing is enabled
+     */
     bool IsDebugDrawEnabled() const { return debugDrawEnabled; }
 
 protected:
+    /**
+     * @brief Called when two objects collide
+     * Override this to handle collision events
+     * @param first First colliding object
+     * @param second Second colliding object
+     */
     virtual void OnCollision(GameObject* first, GameObject* second) {}
 
 private:
     // Collision pair tracking using weak pointers
     using CollisionPair = std::pair<std::weak_ptr<GameObject>, std::weak_ptr<GameObject>>;
 
+    /**
+     * @brief Hash function for collision pairs
+     */
     struct WeakPtrPairHash {
         std::size_t operator()(const CollisionPair& p) const {
             auto p1 = p.first.lock();
@@ -52,6 +116,9 @@ private:
         }
     };
 
+    /**
+     * @brief Equality comparison for collision pairs
+     */
     struct WeakPtrPairEqual {
         bool operator()(const CollisionPair& a, const CollisionPair& b) const {
             auto a1 = a.first.lock();
@@ -66,36 +133,75 @@ private:
         }
     };
 
-    // Tagged object tracking
+    /**
+     * @brief Information about a tagged object
+     */
     struct TaggedObjectInfo {
-        std::weak_ptr<GameObject> object;
-        size_t index;  // Index in gameObjects vector for quick access
+        std::weak_ptr<GameObject> object;  ///< Weak reference to the game object
+        size_t index;                      ///< Index in gameObjects vector
     };
 
-    // Main storage
-    std::vector<std::shared_ptr<GameObject>> gameObjects;
-    std::unordered_map<std::string, std::vector<TaggedObjectInfo>> taggedObjects;
-    std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual> activeCollisions;
+    // Main storage containers
+    std::vector<std::shared_ptr<GameObject>> gameObjects;  ///< All game objects in the scene
+    std::unordered_map<std::string, std::vector<TaggedObjectInfo>> taggedObjects;  ///< Objects organized by tag
+    std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual> activeCollisions;  ///< Currently active collisions
 
     // State flags
-    bool isProcessingCollisions = false;
-    bool debugDrawEnabled = false;
+    bool isProcessingCollisions = false;  ///< Flag to prevent recursive collision processing
+    bool debugDrawEnabled = false;        ///< Flag for debug visualization
 
-    // Internal methods
+    /**
+     * @brief Check for collisions between all objects
+     */
     void CheckCollisions();
+
+    /**
+     * @brief Process collision between two objects
+     */
     void ProcessCollisionPair(const std::shared_ptr<GameObject>& first,
                             const std::shared_ptr<GameObject>& second,
                             std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual>& currentCollisions);
+
+    /**
+     * @brief Handle collision exit events
+     */
     void ProcessCollisionExits(const std::unordered_set<CollisionPair, WeakPtrPairHash, WeakPtrPairEqual>& currentCollisions);
+
+    /**
+     * @brief Safely call collision handlers
+     */
     void SafeCallCollisionHandlers(const std::shared_ptr<GameObject>& first,
                                  const std::shared_ptr<GameObject>& second);
+
+    /**
+     * @brief Safely call collision exit handlers
+     */
     void SafeCallCollisionExitHandlers(const std::shared_ptr<GameObject>& first,
                                      const std::shared_ptr<GameObject>& second);
+
+    /**
+     * @brief Create an ordered pair of game objects for collision tracking
+     */
     CollisionPair CreateOrderedPair(const std::shared_ptr<GameObject>& first,
                                   const std::shared_ptr<GameObject>& second);
 
+    /**
+     * @brief Register a game object's tag
+     */
     void RegisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject);
+
+    /**
+     * @brief Unregister a game object's tag
+     */
     void UnregisterGameObjectTag(const std::shared_ptr<GameObject>& gameObject);
+
+    /**
+     * @brief Clean up invalid tag references
+     */
     void CleanupTags();
+
+    /**
+     * @brief Draw debug visualization for collisions
+     */
     void DrawDebugCollisions(SDL_Renderer* renderer);
 };
