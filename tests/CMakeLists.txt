@@ -11,14 +11,19 @@ FetchContent_MakeAvailable(googletest)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 # Create test executable
-add_executable(unit_tests
+set(tests ${PROJECT_NAME}_tests)
+add_executable(${tests}
         vector2d_test.cpp
         transform_test.cpp
         collider_test.cpp
+        animation_test.cpp
+        camera_test.cpp
+        ui_test.cpp
+        #debug_logger_test.cpp
         # Add more test files here
 )
 
-target_link_libraries(unit_tests
+target_link_libraries(${tests}
         PRIVATE
         GameFramework
         GTest::gtest_main
@@ -27,4 +32,4 @@ target_link_libraries(unit_tests
 
 # Enable CMake's test discovery
 include(GoogleTest)
-gtest_discover_tests(unit_tests)
+gtest_discover_tests(${tests})

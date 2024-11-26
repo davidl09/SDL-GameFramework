@@ -26,14 +26,15 @@ public:
         if (!active) return;
         UIElement::Update(deltaTime);
 
+        auto& mouse = Mouse::Instance();
+        Vector2D mousePos = mouse.GetPosition();
         SDL_Rect bounds = GetBounds();
-        Vector2D mousePos = Mouse::GetPosition();
         
         bool wasPressed = isPressed;
         isHovered = mousePos.x >= bounds.x && mousePos.x < bounds.x + bounds.w &&
                     mousePos.y >= bounds.y && mousePos.y < bounds.y + bounds.h;
         
-        isPressed = isHovered && Mouse::IsButtonPressed(SDL_BUTTON_LEFT);
+        isPressed = isHovered && mouse.IsButtonPressed(SDL_BUTTON_LEFT);
 
         // Trigger callback on release
         if (wasPressed && !isPressed && isHovered && onClick) {

@@ -1,44 +1,65 @@
 #pragma once
 #include "ui_element.h"
+#include "../game.h"
+#include <SDL_ttf.h>
+#include <memory>
+#include <string>
 
 class UIText : public UIElement {
 public:
-    UIText() : UIElement(),
-              color{0, 0, 0, 255},
-              wrapWidth(0),
-              alignment(TextAlignment::Left) {}
-
     enum class TextAlignment {
         Left,
         Center,
         Right
     };
 
-    void SetText(const std::string& text) { 
-        if (this->text != text) {
-            this->text = text;
-            UpdateTexture();
+    UIText() : UIElement(),
+        text(""),
+        color({255, 255, 255, 255}),
+        wrapWidth(0),
+        alignment(TextAlignment::Left),
+        texture(nullptr),
+        dirty(true) {}
+
+    ~UIText() {
+        if (texture) {
+            SDL_DestroyTexture(texture);
         }
     }
 
-    void SetFont(TTF_Font* font) { 
-        this->font = font;
-        UpdateTexture();
+    void SetText(const std::string& newText) {
+        if (text != newText) {
+            text = newText;
+            dirty = true;
+        }
     }
 
-    void SetColor(const SDL_Color& color) { 
-        this->color = color;
-        UpdateTexture();
+    void SetColor(SDL_Color newColor) {
+        if (color.r != newColor.r || color.g != newColor.g || 
+            color.b != newColor.b || color.a != newColor.a) {
+            color = newColor;
+            dirty = true;
+        }
     }
 
     void SetWrapWidth(int width) {
-        wrapWidth = width;
-        UpdateTexture();
+        if (wrapWidth != width) {
+            wrapWidth = width;
+            dirty = true;
+        }
     }
 
-    void SetAlignment(TextAlignment align) {
-        alignment = align;
-        UpdateTexture();
+    void SetAlignment(TextAlignment newAlignment) {
+        if (alignment != newAlignment) {
+            alignment = newAlignment;
+            dirty = true;
+        }
+    }
+
+    void Update(float deltaTime) override {
+        if (dirty) {
+            UpdateTexture();
+        }
     }
 
     void Render(SDL_Renderer* renderer) override {
@@ -67,22 +88,20 @@ public:
         UIElement::Render(renderer);
     }
 
-    ~UIText() {
-        if (texture) {
-            SDL_DestroyTexture(texture);
-        }
-    }
-
 private:
     void UpdateTexture() {
-        if (!font || text.empty()) return;
-
         if (texture) {
             SDL_DestroyTexture(texture);
             texture = nullptr;
         }
 
-        SDL_Surface* surface;
+        TTF_Font* font = TTF_OpenFont("assets/fonts/default.ttf", 16);
+        if (!font) {
+            // Handle error
+            return;
+        }
+
+        SDL_Surface* surface = nullptr;
         if (wrapWidth > 0) {
             surface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), color, wrapWidth);
         } else {
@@ -95,14 +114,17 @@ private:
             textHeight = surface->h;
             SDL_FreeSurface(surface);
         }
+
+        TTF_CloseFont(font);
+        dirty = false;
     }
 
     std::string text;
-    TTF_Font* font = nullptr;
-    SDL_Texture* texture = nullptr;
     SDL_Color color;
     int wrapWidth;
+    TextAlignment alignment;
+    SDL_Texture* texture;
+    bool dirty;
     int textWidth = 0;
     int textHeight = 0;
-    TextAlignment alignment;
 };

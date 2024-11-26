@@ -19,65 +19,71 @@ struct AnimationFrame {
  */
 class Animation {
 public:
+    struct Frame {
+        SDL_Rect sourceRect;
+        float duration;
+    };
+
+    // Default constructor
+    Animation() : name(""), looping(true), currentFrame(0), 
+                 elapsedTime(0.0f), isPlaying(false) {}
+
     Animation(const std::string& name, bool looping = true)
-        : name(name), looping(looping), currentFrame(0), 
-          timeAccumulator(0.0f), isPlaying(false) {}
+        : name(name), looping(looping), currentFrame(0),
+          elapsedTime(0.0f), isPlaying(false) {}
 
-    void AddFrame(const SDL_Rect& rect, float duration = 0.1f, const Vector2D& pivot = Vector2D(0.5f, 0.5f)) {
-        frames.push_back({rect, duration, pivot});
+    void AddFrame(const SDL_Rect& rect, float duration) {
+        frames.push_back({rect, duration});
     }
-
-    const std::string& GetName() const { return name; }
-    bool IsLooping() const { return looping; }
-    bool IsPlaying() const { return isPlaying; }
-    const AnimationFrame& GetCurrentFrame() const { return frames[currentFrame]; }
 
     void Play() {
         isPlaying = true;
         currentFrame = 0;
-        timeAccumulator = 0.0f;
+        elapsedTime = 0.0f;
     }
 
+    void Pause() { isPlaying = false; }
+    void Resume() { isPlaying = true; }
     void Stop() {
         isPlaying = false;
         currentFrame = 0;
-        timeAccumulator = 0.0f;
-    }
-
-    void Pause() {
-        isPlaying = false;
-    }
-
-    void Resume() {
-        isPlaying = true;
+        elapsedTime = 0.0f;
     }
 
     void Update(float deltaTime) {
         if (!isPlaying || frames.empty()) return;
 
-        timeAccumulator += deltaTime;
-        while (timeAccumulator >= frames[currentFrame].duration) {
-            timeAccumulator -= frames[currentFrame].duration;
-            currentFrame++;
-
-            if (currentFrame >= frames.size()) {
+        elapsedTime += deltaTime;
+        if (elapsedTime >= frames[currentFrame].duration) {
+            elapsedTime -= frames[currentFrame].duration;
+            
+            if (currentFrame + 1 >= frames.size()) {
                 if (looping) {
                     currentFrame = 0;
                 } else {
-                    currentFrame = frames.size() - 1;
-                    Stop();
-                    break;
+                    isPlaying = false;
+                    elapsedTime = 0.0f;
                 }
+            } else {
+                currentFrame++;
             }
         }
     }
 
+    const Frame& GetCurrentFrame() const {
+        return frames[currentFrame];
+    }
+
+    bool IsPlaying() const { return isPlaying; }
+    bool IsLooping() const { return looping; }
+    const std::string& GetName() const { return name; }
+
 private:
     std::string name;
-    std::vector<AnimationFrame> frames;
+    std::vector<Frame> frames;
     bool looping;
     size_t currentFrame;
-    float timeAccumulator;
+    float elapsedTime;
     bool isPlaying;
 };
 

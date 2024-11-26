@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <mutex>
 #include <memory>
+#include <iostream>
 
 enum class LogLevel {
     Debug,
@@ -27,14 +28,23 @@ public:
 
     void Initialize(const std::string& filename = "game.log") {
         std::lock_guard<std::mutex> lock(mutex);
-        logFile.open(filename, std::ios::out | std::ios::app);
+        if (logFile.is_open()) {
+            logFile.close();
+        }
+        logFile.open(filename, std::ios::out | std::ios::trunc);
+        if (!logFile.is_open()) {
+            std::cerr << "Failed to open log file: " << filename << std::endl;
+            return;
+        }
         Log(LogLevel::Info, "Debug Logger Initialized");
+        logFile.flush();
     }
 
     void Shutdown() {
         std::lock_guard<std::mutex> lock(mutex);
         if (logFile.is_open()) {
             Log(LogLevel::Info, "Debug Logger Shutdown");
+            logFile.flush();
             logFile.close();
         }
     }
@@ -87,11 +97,10 @@ private:
                 << '.' << std::setfill('0') << std::setw(3) << ms.count()
                 << " [" << GetLevelString(level) << "] "
                 << ss.str() << std::endl;
+        logFile.flush();
 
-        // Also output to console in debug builds
-#ifdef _DEBUG
+        // Also output to console
         std::cout << GetLevelString(level) << ": " << ss.str() << std::endl;
-#endif
     }
 
     const char* GetLevelString(LogLevel level) {
@@ -116,7 +125,6 @@ private:
 #define LOG_ERROR(...) DebugLogger::Instance().Error(__VA_ARGS__)
 #define LOG_FATAL(...) DebugLogger::Instance().Fatal(__VA_ARGS__)
 
-// Scope timer for performance logging
 class ScopeTimer {
 public:
     ScopeTimer(const char* name) 

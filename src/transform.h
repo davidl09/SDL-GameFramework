@@ -19,4 +19,7 @@ public:
     // Get forward and right vectors based on rotation
     Vector2D GetForward() const;
     Vector2D GetRight() const;
+    
+    // Get position
+    const Vector2D& GetPosition() const { return position; }
 };
